@@ -5,7 +5,11 @@ upperBound = 102
 
 def midiToNoteStateMatrix(midifile):
 
-    pattern = midi.read_midifile(midifile)
+    pattern = None
+    try:
+        pattern = midi.read_midifile(midifile)
+    except:
+        return []
 
     timeleft = [track[0].tick for track in pattern]
 
@@ -19,8 +23,10 @@ def midiToNoteStateMatrix(midifile):
     statematrix.append(state)
     while True:
         if time % (pattern.resolution / 4) == (pattern.resolution / 8):
-            # Crossed a note boundary. Create a new state, defaulting to holding notes
+            # Crossed a 16th note boundary. Create a new state, defaulting to holding notes
             oldstate = state
+            # I think this is correct, but going back to the original for now
+            #state = [[oldstate[x][0],oldstate[x][1]] for x in range(span)]
             state = [[oldstate[x][0],0] for x in range(span)]
             statematrix.append(state)
 
@@ -39,6 +45,7 @@ def midiToNoteStateMatrix(midifile):
                             state[evt.pitch-lowerBound] = [0, 0]
                         else:
                             state[evt.pitch-lowerBound] = [1, 1]
+                # I think this is unnecessary, 16th notes are 16th notes, but okay 
                 elif isinstance(evt, midi.TimeSignatureEvent):
                     if evt.numerator not in (2, 4):
                         # We don't want to worry about non-4 time signatures. Bail early!

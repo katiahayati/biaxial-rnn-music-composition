@@ -251,12 +251,17 @@ class Model(object):
         
         # Thus, probabilities is a vector of two probabilities, P(play), and P(artic | play)
         
-        shouldPlay = self.srng.uniform() < (probabilities[0] ** self.conservativity)
-        shouldArtic = shouldPlay * (self.srng.uniform() < probabilities[1])
+        shouldPlay = T.cast(self.srng.uniform() < (probabilities[0] ** self.conservativity), 'int16')
+        shouldArtic = T.cast(shouldPlay * (self.srng.uniform() < probabilities[1]), 'int16')
         
         chosen = T.stack(shouldPlay, shouldArtic)
+#        print chosen
         
         return ensure_list(new_states) + [chosen]
+#        l = map(lambda x: T.cast(x, 'float32'), ensure_list(new_states) + [chosen])
+#        print l
+#        return l
+
 
     def setup_predict(self):
         # In prediction mode, note steps are contained in the time steps. So the passing gets a little bit hairy.
@@ -290,8 +295,10 @@ class Model(object):
             # and then combine in the previous outputs in the step. And then since we are passing outputs to
             # previous inputs, we need an additional outputs_info for the initial "previous" output of zero.
             note_outputs_info = ([ initial_state_with_taps(layer) for layer in self.pitch_model.layers ] +
-                                 [ dict(initial=start_note_values, taps=[-1]) ])
-            
+                                 [ dict(initial=start_note_values, taps=[-1.0]) ])
+
+            #print note_outputs_info
+            #print LSTM #.initial_hidden_state
             notes_result, updates = theano.scan(fn=self._predict_step_note, sequences=[time_final], outputs_info=note_outputs_info)
             
             # Now notes_result is a list of matrix [layer/output](notes, onOrArtic)
